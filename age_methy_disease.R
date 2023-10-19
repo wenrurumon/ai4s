@@ -174,3 +174,57 @@ test %>%
   group_by(V30) %>%
   summarise(n(),mean(age),sd(age))
   
+################
+
+
+rm(list=ls())
+library(dplyr)
+library(data.table)
+library(ggplot2)
+library(reticulate)
+use_python('/Users/wenrurumon/Library/r-miniconda/envs/r-reticulate/bin/python')
+np <- import('numpy')
+skl <- import('sklearn')
+load("/Users/wenrurumon/Desktop/ai3/meilian/ad/test.rda")
+
+data.table(age=test$age,x=bvalue[,1]) %>%
+  ggplot() + 
+  geom_point(aes(x=age,y=x),alpha=0.2) +
+  geom_smooth(aes(x=age,y=x),se=F) +
+  theme_bw()
+
+data.table(disease=test$disease,x=bvalue[,1]) %>%
+  ggplot() + 
+  geom_boxplot(aes(y=x,fill=disease)) +
+  theme_bw() +
+  theme(legend.position='top')
+
+data.table(age=cut(test$age,4),disease=test$disease,x=bvalue[,1]) %>%
+  ggplot() + 
+  geom_boxplot(aes(y=x,fill=disease)) +
+  facet_wrap(~age,ncol=2) +
+  theme_bw() +
+  theme(legend.position='top')
+
+table(test$disease,test$V1)
+
+ggplot() + 
+  geom_line(aes(x=1:(ncol(test)-3),y=colMeans(test[,-1:-3])*100)) +
+  ylim(c(0,50)) +
+  theme_bw() + 
+  labs(x='Years After Current Status',y='Case%')
+
+apply(test[,-1:-3],2,function(x){tapply(x,paste(cut(test$age,4),test$gender),mean)}) %>%
+  melt() %>%
+  select(class=1,year=2,rate=3) %>% 
+  filter(!grepl('NA',class)) %>%
+  mutate(class=paste(class)) %>%
+  mutate(age=substr(class,1,nchar(class)-2)) %>%
+  mutate(gender=ifelse(grepl(' 0',class),'female','male')) %>%
+  mutate(year=as.numeric(gsub('V','',year))) %>%
+  ggplot() + 
+  geom_line(aes(x=year,y=rate*100,colour=age),size=1) +
+  facet_grid(~gender) +
+  theme_bw() +
+  theme(legend.position='top') +
+  labs(x='Years After Current Status',y='Case%')
